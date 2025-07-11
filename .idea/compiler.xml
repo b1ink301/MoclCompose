@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel target="17">
+      <module name="Mocl.app" target="21" />
+      <module name="Mocl.baselineprofile" target="21" />
+      <module name="Mocl.buildSrc" target="21" />
+      <module name="Mocl.buildSrc.main" target="21" />
+      <module name="Mocl.buildSrc.test" target="21" />
+      <module name="Mocl.common" target="21" />
+      <module name="Mocl.data" target="21" />
+      <module name="Mocl.domain_test" target="11" />
+      <module name="Mocl.domain_test.main" target="11" />
+      <module name="Mocl.domain_test.test" target="11" />
+      <module name="Mocl.htmlcompose" target="21" />
+      <module name="Mocl.htmlparser" target="21" />
+      <module name="Mocl2.Mocl.app" target="21" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

@@ -1,0 +1,4 @@
+수정사항
+ - compose version
+ - fragula 개선
+ - 게시글 읽음 처리 개선
