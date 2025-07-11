@@ -1,0 +1,69 @@
+default_platform(:android)
+
+platform :android do
+    desc "MoCl"
+
+    lane :distribute do
+#        gradle(task: "clean")
+       gradle(
+           task: "bundle",
+           #flavor: "Dev",
+           build_type: "Release",
+           print_command: true,
+           properties: {
+                "android.injected.signing.store.file" => ENV['SIGNED_STORE_FILE'],
+                "android.injected.signing.store.password" => ENV['SIGNED_STORE_PASSWORD'],
+                "android.injected.signing.key.alias" => ENV['SIGNED_KEY_ALIAS'],
+                "android.injected.signing.key.password" => ENV['SIGNED_KEY_PASSWORD'],
+           }
+         )
+
+        firebase_app_distribution(
+            app: "1:275270612301:android:6b15e1c81167409a",
+            firebase_cli_token: "1//0ebYm3TQxbB9pCgYIARAAGA4SNwF-L9IrrY_OiqUOFY4qkvb4MMaKS5Gk6b60VyygQ2b7mAhofeYgcO0oFIkFh-cd8pBbu85H2sM",
+            service_credentials_file: "/Users/ohjh/Documents/AndroidProjects/Mocl2/app/google-services.json",
+            testers: "b1ink301@gmail.com",
+            release_notes: "compose testing",
+#             release_notes_file: "./release_notes.txt",
+            debug: false,
+            android_artifact_type: "AAB"
+        )
+    end
+
+    lane :playstore do
+           gradle(task: "clean")
+           gradle(
+               task: "bundle",
+               build_type: "Release",
+               print_command: true,
+               properties: {
+                    "android.injected.signing.store.file" => ENV['SIGNED_STORE_FILE'],
+                    "android.injected.signing.store.password" => ENV['SIGNED_STORE_PASSWORD'],
+                    "android.injected.signing.key.alias" => ENV['SIGNED_KEY_ALIAS'],
+                    "android.injected.signing.key.password" => ENV['SIGNED_KEY_PASSWORD'],
+               }
+             )
+
+        upload_to_play_store(
+            track: "internal",
+            json_key: ENV['ANDROID_APP_GOOGLE_KEY'],
+#             aab: ENV['ANDROID_APP_AAB_PATH'],
+            skip_upload_metadata: true,
+            skip_upload_images: true,
+            skip_upload_screenshots: true,
+            skip_upload_apk:true
+        )
+    end
+
+    # 모든 테스트 트랙에 출시 및 테스트 앱 배포
+    desc "deploy all track"
+        lane :deployAll do |options|
+
+        develop(options)
+        alpha(options)
+        release(options)
+        gitCommitAndPush()
+    end
+end
+
+# fastlane android distribute
