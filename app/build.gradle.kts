@@ -46,10 +46,10 @@ android {
             } else {
                 project.logger.info("Keystore file not found. Trying to load from environment variables.")
 
-                val storeFileEnv = System.getenv("STORE_FILE_PATH")
+                val storeFileEnv = System.getenv("KEYSTORE_FILE_PATH")
                 val keyAliasEnv = System.getenv("KEY_ALIAS")
                 val keyPasswordEnv = System.getenv("KEY_PASSWORD")
-                val storePasswordEnv = System.getenv("STORE_PASSWORD")
+                val storePasswordEnv = System.getenv("KEYSTORE_PASSWORD")
 
                 if (storeFileEnv != null && keyAliasEnv != null && keyPasswordEnv != null && storePasswordEnv != null) {
                     storeFile = file(storeFileEnv)
@@ -60,16 +60,16 @@ android {
                     project.logger.info("Successfully loaded keystore properties from environment variables.")
                 } else {
                     val missingEnvVars = mutableListOf<String>()
-                    if (storeFileEnv == null) missingEnvVars.add("STORE_FILE_PATH")
+                    if (storeFileEnv == null) missingEnvVars.add("KEYSTORE_FILE_PATH")
                     if (keyAliasEnv == null) missingEnvVars.add("KEY_ALIAS")
                     if (keyPasswordEnv == null) missingEnvVars.add("KEY_PASSWORD")
-                    if (storePasswordEnv == null) missingEnvVars.add("STORE_PASSWORD")
+                    if (storePasswordEnv == null) missingEnvVars.add("KEYSTORE_PASSWORD")
 
                     throw GradleException(
                         "Keystore file not found at ${userKeystoreFile.absolutePath} and " +
                                 "one or more required environment variables are missing: ${missingEnvVars.joinToString()}. " +
                                 "Please provide the keystore file or set the following environment variables: " +
-                                "STORE_FILE_PATH, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD"
+                                "KEYSTORE_FILE_PATH, KEY_ALIAS, KEY_PASSWORD, KEYSTORE_PASSWORD"
                     )
                 }
             }

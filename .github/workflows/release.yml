@@ -28,10 +28,10 @@ jobs:
           
           # 생성된 키스토어 파일 경로와 비밀번호를 gradle.properties에 추가
           # 2. 이후 스텝에서 사용할 환경변수를 설정합니다.
-          echo "STORE_FILE_PATH=${{ github.workspace }}/release.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_FILE_PATH=${{ github.workspace }}/release.jks" >> $GITHUB_ENV
           echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-          echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
 
       # 여기에 빌드 관련 스텝을 추가
       - name: Build project
