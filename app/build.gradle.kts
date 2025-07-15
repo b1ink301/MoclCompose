@@ -1,7 +1,5 @@
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
-import java.io.FileNotFoundException
 import java.util.Properties
-import kotlin.apply
 
 plugins {
     customPlugin("android.application")
@@ -25,18 +23,56 @@ android {
 
     signingConfigs {
         create("mocl") {
-            val keyPropertiesFile = project.rootProject.file("../keystore/key.properties")
-            if (!keyPropertiesFile.exists()) {
-                throw FileNotFoundException("key.properties file not found at ${keyPropertiesFile.absolutePath}")
+            val userKeystoreFile = project.rootProject.file("../keystore/key.properties")
+            val keystoreProperties = Properties()
+            val hasKeyInfo = userKeystoreFile.exists()
+
+            if (hasKeyInfo) {
+                userKeystoreFile.reader()
+                    .use { reader ->
+                        keystoreProperties.load(reader)
+                    }
+                // 필요한 속성이 모두 존재하는지 검증
+                storeFile = file(
+                    keystoreProperties.getProperty("storeFile")
+                        ?: throw IllegalArgumentException("Missing 'storeFile' in key.properties")
+                )
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                    ?: throw IllegalArgumentException("Missing 'keyAlias' in key.properties")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                    ?: throw IllegalArgumentException("Missing 'keyPassword' in key.properties")
+                storePassword = keystoreProperties.getProperty("storePassword")
+                    ?: throw IllegalArgumentException("Missing 'storePassword' in key.properties")
+            } else {
+                project.logger.info("Keystore file not found. Trying to load from environment variables.")
+
+                val storeFileEnv = System.getenv("STORE_FILE_PATH")
+                val keyAliasEnv = System.getenv("KEY_ALIAS")
+                val keyPasswordEnv = System.getenv("KEY_PASSWORD")
+                val storePasswordEnv = System.getenv("STORE_PASSWORD")
+
+                if (storeFileEnv != null && keyAliasEnv != null && keyPasswordEnv != null && storePasswordEnv != null) {
+                    storeFile = file(storeFileEnv)
+                    keyAlias = keyAliasEnv
+                    keyPassword = keyPasswordEnv
+                    storePassword = storePasswordEnv
+
+                    project.logger.info("Successfully loaded keystore properties from environment variables.")
+                } else {
+                    val missingEnvVars = mutableListOf<String>()
+                    if (storeFileEnv == null) missingEnvVars.add("STORE_FILE_PATH")
+                    if (keyAliasEnv == null) missingEnvVars.add("KEY_ALIAS")
+                    if (keyPasswordEnv == null) missingEnvVars.add("KEY_PASSWORD")
+                    if (storePasswordEnv == null) missingEnvVars.add("STORE_PASSWORD")
+
+                    throw GradleException(
+                        "Keystore file not found at ${userKeystoreFile.absolutePath} and " +
+                                "one or more required environment variables are missing: ${missingEnvVars.joinToString()}. " +
+                                "Please provide the keystore file or set the following environment variables: " +
+                                "STORE_FILE_PATH, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD"
+                    )
+                }
             }
-            val properties = Properties().apply {
-                load(keyPropertiesFile.reader())
-            }
-            // 필요한 속성이 모두 존재하는지 검증
-            storeFile = file(properties.getProperty("storeFile") ?: throw IllegalArgumentException("Missing 'storeFile' in key.properties"))
-            keyAlias = properties.getProperty("keyAlias") ?: throw IllegalArgumentException("Missing 'keyAlias' in key.properties")
-            keyPassword = properties.getProperty("keyPassword") ?: throw IllegalArgumentException("Missing 'keyPassword' in key.properties")
-            storePassword = properties.getProperty("storePassword") ?: throw IllegalArgumentException("Missing 'storePassword' in key.properties")
         }
     }
 
