@@ -1,0 +1,35 @@
+name: Create Release
+
+on:
+  pull_request:
+    types: [closed] # PR이 닫혔을 때 워크플로우 실행
+    branches:
+      - main # main 브랜치에 대한 PR만 해당
+
+jobs:
+  build-and-release:
+    if: github.event.pull_request.merged == true # PR이 병합되었을 경우에만 실행
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 여기에 빌드 관련 스텝을 추가합니다. (예: npm, gradle 등)
+      - name: Build project
+        run: |
+            ./gradlew bundleRelease appDistributionUploadRelease
+
+      # 빌드가 성공하면 릴리즈를 생성합니다.
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }} # 릴리즈 태그 이름 (예: v1, v2, ...)
+          release_name: Release v${{ github.run_number }} # 릴리즈 이름
+          body: |
+            Changes in this release:
+            - ${{ github.event.pull_request.title }}
+          draft: false
+          prerelease: false
