@@ -16,11 +16,11 @@ import okhttp3.CipherSuite
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
 import okhttp3.TlsVersion
-import okhttp3.internal.platform.Platform
-import okhttp3.internal.platform.PlatformRegistry
+import okhttp3.internal.tls.OkHostnameVerifier
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -55,7 +55,6 @@ object ClienModule {
         loggingInterceptor: HttpLoggingInterceptor,
         cookieJar: WebViewPersistentCookieJar
     ): OkHttpClient {
-
         val spec = ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
             .tlsVersions(TlsVersion.TLS_1_1, TlsVersion.TLS_1_2)
             .cipherSuites(
@@ -76,6 +75,14 @@ object ClienModule {
             .cookieJar(cookieJar)
             .connectionSpecs(listOf(spec, ConnectionSpec.CLEARTEXT, ConnectionSpec.COMPATIBLE_TLS))
             .addInterceptor(loggingInterceptor)
+            .hostnameVerifier { hostname, session ->
+                Timber.d("hostname: $hostname")
+                if (hostname == "m.clien.net") {
+                    true // 이 호스트 이름만 신뢰
+                } else {
+                    OkHostnameVerifier.verify(hostname, session)
+                }
+            }
 //            .addInterceptor { chain ->
 //                val request = chain.request()
 //                    .newBuilder()
