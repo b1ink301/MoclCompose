@@ -42,7 +42,6 @@ fun MainCompose(
     val siteState by viewModel.siteState.collectAsState()
     val scope = rememberCoroutineScope()
     var drawerEnabled by remember { mutableStateOf(true) }
-
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
     LaunchedEffect(navBackStackEntry) {
@@ -55,7 +54,7 @@ fun MainCompose(
                 drawerState = drawerState,
                 gesturesEnabled = drawerEnabled,
                 drawerContent = {
-                    AppDrawerContent<SiteType>(
+                    AppDrawerContent(
                         drawerState = drawerState,
                         menuItems = DrawerParams.drawerButtons,
                         defaultPick = siteState,
