@@ -2,7 +2,7 @@ name: Create Release
 
 on:
   pull_request:
-    types: [closed] # PR이 닫혔을 때 워크플로우 실행
+    types: [ closed ] # PR이 닫혔을 때 워크플로우 실행
     branches:
       - main # main 브랜치에 대한 PR만 해당
 
@@ -14,10 +14,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 여기에 빌드 관련 스텝을 추가합니다. (예: npm, gradle 등)
-      - name: Build project
+      - name: Decode Keystore and Setup Signing
+        id: decode_keystore
+        # GitHub 시크릿을 사용하여 환경 변수 설정
+#        env:
+#          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+#          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+#          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+#          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-            ./gradlew bundleRelease appDistributionUploadRelease
+          # Base64 문자열을 디코딩하여 키스토어 파일로 다시 생성
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/release.jks
+          
+          # 생성된 키스토어 파일 경로와 비밀번호를 gradle.properties에 추가
+          # 2. 이후 스텝에서 사용할 환경변수를 설정합니다.
+          echo "STORE_FILE_PATH=${{ github.workspace }}/release.jks" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+
+      # 여기에 빌드 관련 스텝을 추가
+      - name: Build project
+        run: ./gradlew assembleRelease
 
       # 빌드가 성공하면 릴리즈를 생성합니다.
       - name: Create Release
