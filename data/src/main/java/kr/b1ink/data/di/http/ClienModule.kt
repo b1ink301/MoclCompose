@@ -68,31 +68,13 @@ object ClienModule {
         return OkHttpClient.Builder()
             .followSslRedirects(true)
             .followRedirects(true)
-//            .retryOnConnectionFailure(true)
+            .retryOnConnectionFailure(true)
             .writeTimeout(10, TimeUnit.SECONDS)
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .cookieJar(cookieJar)
             .connectionSpecs(listOf(spec, ConnectionSpec.CLEARTEXT, ConnectionSpec.COMPATIBLE_TLS))
             .addInterceptor(loggingInterceptor)
-            .hostnameVerifier { hostname, session ->
-                Timber.d("hostname: $hostname")
-                if (hostname == "m.clien.net") {
-                    true // 이 호스트 이름만 신뢰
-                } else {
-                    OkHostnameVerifier.verify(hostname, session)
-                }
-            }
-//            .addInterceptor { chain ->
-//                val request = chain.request()
-//                    .newBuilder()
-//                    .header(
-//                        "User-Agent",
-//                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:126.0) Gecko/20100101 Firefox/126.0"
-//                    )
-//                    .build()
-//                chain.proceed(request)
-//            }
             .build()
     }
 

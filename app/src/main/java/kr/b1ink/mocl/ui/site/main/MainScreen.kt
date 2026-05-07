@@ -42,7 +42,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kr.b1ink.domain.model.MainItem
 import kr.b1ink.domain.model.SiteType
 import kr.b1ink.mocl.ui.components.AppBarText

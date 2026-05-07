@@ -14,8 +14,10 @@ internal class AndroidApplicationPlugin : Plugin<Project> {
             apply("com.android.application")
         }
 
+        configureKotlinAndroid()
+
         extensions.configure<ApplicationExtension> {
-            configureKotlinAndroid()
+            configureAndroidCommon(target)
 
             defaultConfig {
                 targetSdk = libs.findVersion("targetSdk").get().requiredVersion.toInt()

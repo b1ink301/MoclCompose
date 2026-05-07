@@ -33,6 +33,7 @@ android {
 
 dependencies {
     implementation(libs.core.ktx)
+    implementation(libs.androidx.material.icons.extended.android)
     api(libs.bundles.coil3)
 
     //video
@@ -45,4 +46,5 @@ dependencies {
     implementation(libs.androidyoutubeplayer.core)
 
 //    implementation(libs.scale.image.viewer)
+//    implementation("cn.changjiahong:RtText:0.1.1")
 }

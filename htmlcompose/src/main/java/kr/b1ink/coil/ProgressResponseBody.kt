@@ -26,18 +26,17 @@ internal class ProgressResponseBody(
         }
 
     private fun source(source: Source): Source = object : ForwardingSource(delegate = source) {
-        var totalBytesRead = 0f
-        var oldProgress = -1f
+        @Volatile var totalBytesRead = 0L
+        @Volatile var oldProgress = -1f
 
         override fun read(sink: Buffer, byteCount: Long): Long {
             val bytesRead = super.read(sink, byteCount)
-            // bytesRead가 -1이면 스트림의 끝을 의미합니다.
             if (bytesRead != -1L) {
                 totalBytesRead += bytesRead
             }
-            val contentLength = responseBody.contentLength().toFloat()
+            val contentLength = responseBody.contentLength()
             if (contentLength > 0) {
-                val progress = (totalBytesRead / contentLength).coerceIn(0f, 1f)
+                val progress = (totalBytesRead.toFloat() / contentLength).coerceIn(0f, 1f)
                 if (oldProgress != progress) {
                     oldProgress = progress
                     ProgressManager.onProgress(progressId, progress)

@@ -1,7 +1,7 @@
 package kr.b1ink.mocl.ui.intro.composables
 
 import androidx.compose.runtime.Composable
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import kr.b1ink.domain.model.MainNavOption

@@ -30,7 +30,7 @@ import javax.inject.Inject
 class ListViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     getListPager: GetListDataPager,
-) : ViewModel(), ContainerHost<Flow<PagingData<ListItemWrapper>>, ListUiSideEffect> {
+) : ViewModel(), ContainerHost<ListUiState, ListUiSideEffect> {
 
     private val mainItem: MainItem = requireNotNull(
         savedStateHandle.get<String>(EXTRAS_QUERY)
@@ -43,13 +43,10 @@ class ListViewModel @Inject constructor(
     val title = mainItem.title
     val smallTitle = siteType.title()
 
-    var isRefreshing by mutableStateOf(false)
-        private set
-
     fun refresh() = intent {
-        isRefreshing = true
+        reduce { state.copy(isRefreshing = true) }
         withContext(Dispatchers.IO) { delay(100) }
-        isRefreshing = false
+        reduce { state.copy(isRefreshing = false) }
         withContext(Dispatchers.IO) { delay(100) }
         postSideEffect(ListUiSideEffect.Refresh)
     }
@@ -71,5 +68,7 @@ class ListViewModel @Inject constructor(
         }
         .cachedIn(viewModelScope)
 
-    override val container = container<Flow<PagingData<ListItemWrapper>>, ListUiSideEffect>(_pagingFlow)
+    override val container = container<ListUiState, ListUiSideEffect>(
+        ListUiState(pagingData = _pagingFlow)
+    )
 }

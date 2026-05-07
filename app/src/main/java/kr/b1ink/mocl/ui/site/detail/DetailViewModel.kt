@@ -22,6 +22,7 @@ import kr.b1ink.domain.usecase.site.MarkRead
 import kr.b1ink.domain.usecase.site.detail.GetDetailData
 import kr.b1ink.mocl.EXTRAS_QUERY
 import kr.b1ink.mocl.EXTRAS_SITE_TYPE
+import kr.b1ink.mocl.di.FontScaleManager
 import kr.b1ink.mocl.ui.site.detail.DetailUiState.Error
 import kr.b1ink.mocl.ui.site.detail.DetailUiState.Success
 import org.orbitmvi.orbit.Container
@@ -34,7 +35,14 @@ class DetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val _getDetailData: GetDetailData,
     private val _markRead: MarkRead,
+    private val fontScaleManager: FontScaleManager,
 ) : ViewModel(), ContainerHost<DetailUiState, DetailUiSideEffect> {
+
+    val currentFontScale: Float get() = fontScaleManager.currentFontScale
+
+    fun setFontScale(scale: Float) = viewModelScope.launch {
+        fontScaleManager.updateFontScale(scale)
+    }
     override val container: Container<DetailUiState, DetailUiSideEffect> = container(DetailUiState.Loading) {
         reqDetailData()
     }
@@ -55,9 +63,9 @@ class DetailViewModel @Inject constructor(
 
     fun refresh() = viewModelScope.launch {
         isRefreshing = true
-        withContext(Dispatchers.IO) { delay(50) }
+        delay(50)
         isRefreshing = false
-        withContext(Dispatchers.IO) { delay(100) }
+        delay(100)
         reqDetailData()
     }
 
@@ -78,7 +86,9 @@ class DetailViewModel @Inject constructor(
                 Success(result.data)
             }
 
-            is Result.LoginError -> Error(result.error)
+            is Result.LoginError -> reduce {
+                Error(result.error)
+            }
         }
     }
 

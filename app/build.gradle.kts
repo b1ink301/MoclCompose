@@ -76,6 +76,10 @@ android {
         }
     }
 
+    buildFeatures {
+        resValues = true
+    }
+
     buildTypes {
         getByName("debug") {
             signingConfig = signingConfigs.getByName("mocl")
@@ -104,17 +108,6 @@ android {
             }
         }
     }
-
-    applicationVariants.all {
-        val buildTypeName = buildType.name
-        val outputFileName = "mocl_${buildTypeName}_${versionName}.apk"
-
-        outputs
-            .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
-            .forEach { output ->
-                output.outputFileName = outputFileName
-            }
-    }
 }
 
 baselineProfile {
@@ -137,7 +130,6 @@ dependencies {
     implementation(libs.paging.compose)
 
     //profile
-    implementation(libs.macrobenchmark)
     implementation(libs.profileinstaller)
 
     //swipe-back
@@ -159,7 +151,7 @@ dependencies {
     implementation(libs.androidx.browser)
     implementation(libs.kevinnzou.compose.webview)
 
-    implementation(libs.firebase.appdistribution.api.ktx)
+    implementation(libs.firebase.appdistribution.api)
 //  "betaImplementation"(libs.firebase.appdistribution)
 
 //    implementation(libs.androidx.tracing.perfetto)

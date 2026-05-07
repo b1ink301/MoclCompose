@@ -10,9 +10,17 @@ jobs:
   build-and-release:
     if: github.event.pull_request.merged == true # PR이 병합되었을 경우에만 실행
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # GitHub Release 생성, 수정 등 콘텐츠 쓰기 권한 부여
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Decode Keystore and Setup Signing
         id: decode_keystore

@@ -11,4 +11,5 @@ class SettingDataStore @Inject constructor(
     @ApplicationContext context: Context,
 ) : KotprefModel(context) {
     var siteType by enumValuePref(default = SiteType.Damoang)
+    var fontScale by floatPref(default = 1.0f)
 }

@@ -136,7 +136,7 @@ fun Comments.Comment.toDetailComment(): DetailComment {
     return DetailComment(
         id = id,
         bodyHtml = bodyHtml,
-        time = updateDate.toString(),
+        time = time,
         info = "${writer.nick}ㆍ$time",
         likeCount = "",
         userInfo = UserInfo(

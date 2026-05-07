@@ -14,6 +14,15 @@ import java.io.File
 private const val PATH_SYSTEM_FONTS_FILE = "/system/etc/fonts.xml"
 private const val PATH_SYSTEM_FONTS_DIR = "/system/fonts/"
 
+// 시스템 폰트 XML을 한 번만 읽고 캐싱 (메인 스레드 블로킹 방지)
+private val systemFontsXml: String? by lazy {
+    try {
+        java.io.File(PATH_SYSTEM_FONTS_FILE).readText()
+    } catch (_: Exception) {
+        null
+    }
+}
+
 fun RelativeSizeSpan.spanStyle(fontSize: TextUnit): SpanStyle =
     SpanStyle(fontSize = (fontSize.value * sizeChange).sp)
 
@@ -34,13 +43,17 @@ fun SuperscriptSpan.spanStyle(): SpanStyle =
     SpanStyle(baselineShift = BaselineShift.Superscript)
 
 fun TypefaceSpan.spanStyle(): SpanStyle? {
-    val xmlContent = File(PATH_SYSTEM_FONTS_FILE).readText()
+    val xmlContent = systemFontsXml ?: return null
     return if (xmlContent.contains("""<family name="$family""")) {
         val familyChunkXml = xmlContent.substringAfter("""<family name="$family""")
             .substringBefore("""</family>""")
         val fontName = familyChunkXml.substringAfter("""<font weight="400" style="normal">""")
             .substringBefore("</font>")
-        SpanStyle(fontFamily = FontFamily(Typeface.createFromFile("$PATH_SYSTEM_FONTS_DIR$fontName")))
+        try {
+            SpanStyle(fontFamily = FontFamily(Typeface.createFromFile("$PATH_SYSTEM_FONTS_DIR$fontName")))
+        } catch (_: Exception) {
+            null
+        }
     } else {
         null
     }

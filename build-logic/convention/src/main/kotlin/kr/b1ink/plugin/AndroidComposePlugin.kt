@@ -25,8 +25,8 @@ class AndroidComposePlugin : Plugin<Project> {
                         .get()
                 )
                 "api"(composeBom)
-                "testApi"(composeBom)
-                "androidTestApi"(composeBom)
+                "testImplementation"(composeBom)
+                "androidTestImplementation"(composeBom)
 
                 "implementation"(
                     libs.findBundle("compose")

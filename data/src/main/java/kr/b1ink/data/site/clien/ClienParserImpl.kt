@@ -112,7 +112,7 @@ class ClienParserImpl @Inject constructor() : BaseParser {
         }
         val id = attr("data-board-sn").toLongOrNull() ?: return null
         if (id < 0 || lastId in 1..id) {
-            Timber.Forest.d("[ClienParser] SKIP ===> lastId=$lastId, id=$id")
+            Timber.d("[ClienParser] SKIP ===> lastId=$lastId, id=$id")
             return null
         }
 
@@ -128,7 +128,8 @@ class ClienParserImpl @Inject constructor() : BaseParser {
 //    val memo = select("div.list_infomation > div.list_author > span.memo").text()
         val nickName = textOrEmpty(SELECTOR_LIST_NICKNAME)
         val hasImage = selectFirst(SELECTOR_LIST_HAS_IMAGE) != null
-        val info = buildInfoString(nickName, time.toTimeAgo(), hit)
+        val formattedTime = time.toTimeAgo()
+        val info = buildInfoString(nickName, formattedTime, hit)
 
         return ListItemDto(
             id = id,
@@ -141,7 +142,7 @@ class ClienParserImpl @Inject constructor() : BaseParser {
             ),
             info = info,
             category = category,
-            time = time,
+            time = formattedTime,
             url = url,
             board = board,
             hasImage = hasImage,
@@ -224,14 +225,16 @@ class ClienParserImpl @Inject constructor() : BaseParser {
             .firstOrNull()
             ?.trim() ?: time
 
-        val info = buildInfoString(nickName = nickName, formattedTime = tmpTime.toTimeAgo(), hit = viewCount)
+        val formattedTime = tmpTime.toTimeAgo()
+
+        val info = buildInfoString(nickName = nickName, formattedTime = formattedTime, hit = viewCount)
 
         return DetailDto(
             viewCount = viewCount,
             likeCount = likeCount,
             csrf = csrf,
             title = title,
-            time = time,
+            time = formattedTime,
             info = info,
             userInfo = UserInfo(
                 id = userId,
@@ -274,14 +277,17 @@ class ClienParserImpl @Inject constructor() : BaseParser {
         }
 
         val commentBodyHtml = mediaHtml + (bodyElement?.html() ?: "")
-        val info = buildInfoString(nickName = nickName, formattedTime = time.toTimeAgo(), hit = "")
+        val formattedTime = time.toTimeAgo()
+        val info = buildInfoString(nickName = nickName, formattedTime = formattedTime, hit = "")
+
+        Timber.d("[ClienParser] commentBodyHtml ===> $commentBodyHtml")
 
         return DetailComment(
             id = sn,
             isReply = isReply,
             bodyHtml = commentBodyHtml,
             likeCount = likeCount,
-            time = time,
+            time = formattedTime,
             info = info,
             userInfo = UserInfo(
                 id = userId,

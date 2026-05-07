@@ -41,6 +41,7 @@ fun DetailTopAppBar(
     scrollBehavior: TopAppBarScrollBehavior? = null,
     onRefresh: () -> Unit = {},
     onOpenCustomTabs: () -> Unit = {},
+    onFontSize: () -> Unit = {},
 ) {
     var moreMenuExpanded by remember { mutableStateOf(false) }
     val density = LocalDensity.current
@@ -104,6 +105,13 @@ fun DetailTopAppBar(
                         text = { Text("새로고침") },
                         onClick = {
                             onRefresh.invoke()
+                            moreMenuExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("폰트 크기") },
+                        onClick = {
+                            onFontSize.invoke()
                             moreMenuExpanded = false
                         }
                     )

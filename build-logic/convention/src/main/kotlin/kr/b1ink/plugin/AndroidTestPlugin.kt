@@ -1,30 +1,44 @@
 package kr.b1ink.plugin
 
-import com.android.build.gradle.BaseExtension
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.LibraryExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.dependencies
-import org.gradle.kotlin.dsl.getByType
 
 class AndroidTestPlugin : Plugin<Project> {
     override fun apply(target: Project): Unit =
         with(target) {
             apply<JUnit5Plugin>()
-            extensions.getByType<BaseExtension>().apply {
+
+            // Application 또는 Library extension에서 테스트 설정
+            extensions.findByType(ApplicationExtension::class.java)?.apply {
                 defaultConfig {
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                     testInstrumentationRunnerArguments["runnerBuilder"] = "de.mannodermaus.junit5.AndroidJUnit5Builder"
                 }
-
                 testOptions {
                     unitTests {
                         isIncludeAndroidResources = true
                     }
                 }
+                packaging {
+                    resources.excludes.add("META-INF/LICENSE*")
+                }
+            }
 
-                packagingOptions {
+            extensions.findByType(LibraryExtension::class.java)?.apply {
+                defaultConfig {
+                    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+                    testInstrumentationRunnerArguments["runnerBuilder"] = "de.mannodermaus.junit5.AndroidJUnit5Builder"
+                }
+                testOptions {
+                    unitTests {
+                        isIncludeAndroidResources = true
+                    }
+                }
+                packaging {
                     resources.excludes.add("META-INF/LICENSE*")
                 }
             }

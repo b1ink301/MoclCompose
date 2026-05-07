@@ -1,5 +1,6 @@
 package kr.b1ink.htmlcompose
 
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -12,6 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -24,53 +28,80 @@ fun VideoRenderer(
     url: String,
     width: Int,
     height: Int,
-    screenWidth: Int
 ) {
     Timber.d("[VideoRenderer] url=$url, width=$width, height=$height")
-    val context = LocalContext.current
-    val exoPlayer = remember(url) {
-        ExoPlayer.Builder(context)
-            .build()
-            .apply {
-                playWhenReady = false
-                repeatMode = Player.REPEAT_MODE_ONE
-                setMediaItem(MediaItem.fromUri(url))
-                prepare()
-            }
-    }
 
-    val displayWidth =
-        remember(url) { if (width > 0 && width > screenWidth) screenWidth else width }
-    val displayHeight = remember(url) {
-        if (width > 0 && height > 0 && displayWidth > 0) {
-            (height * (displayWidth.toFloat() / width)).roundToInt()
-        } else {
-            height
+    val pool = LocalExoPlayerPool.current
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // 풀이 있으면 풀에서 가져오고, 없으면 로컬 생성
+    val exoPlayer = if (pool != null) {
+        remember(url) { pool.acquire(url) }
+    } else {
+        remember(url) {
+            ExoPlayer.Builder(context)
+                .build()
+                .apply {
+                    playWhenReady = false
+                    repeatMode = Player.REPEAT_MODE_ONE
+                    setMediaItem(MediaItem.fromUri(url))
+                    prepare()
+                }
         }
     }
 
-    val modifier = if (displayWidth > 0 && displayHeight > 0) {
-        Modifier
-            .width(displayWidth.dp)
-            .height(displayHeight.dp)
-    } else if (displayWidth > 0) {
-        Modifier
-            .width(displayWidth.dp)
-            .wrapContentHeight()
-    } else {
-        Modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
+    DisposableEffect(url, lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> exoPlayer.pause()
+                Lifecycle.Event.ON_RESUME -> { /* 사용자가 직접 재생 */ }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            // 풀이 있으면 pause만 (풀이 lifecycle 관리), 없으면 release
+            if (pool != null) {
+                exoPlayer.pause()
+            } else {
+                exoPlayer.release()
+            }
+        }
     }
 
-//    val ratio = width.toFloat() / height.toFloat()
+    BoxWithConstraints {
+        val availableWidth = maxWidth.value.toInt()
 
-    AndroidView(
-        factory = { PlayerView(it).apply { player = exoPlayer } },
-        modifier = modifier
-            .padding(bottom = 8.dp)
-    )
-    DisposableEffect(Unit) {
-        onDispose { exoPlayer.release() }
+        val displayWidth =
+            remember(url, availableWidth) { if (width > 0 && width > availableWidth) availableWidth else width }
+        val displayHeight = remember(url, availableWidth, displayWidth) {
+            if (width > 0 && height > 0 && displayWidth > 0) {
+                (height * (displayWidth.toFloat() / width)).roundToInt()
+            } else {
+                height
+            }
+        }
+
+        val videoModifier = if (displayWidth > 0 && displayHeight > 0) {
+            Modifier
+                .width(displayWidth.dp)
+                .height(displayHeight.dp)
+        } else if (displayWidth > 0) {
+            Modifier
+                .width(displayWidth.dp)
+                .wrapContentHeight()
+        } else {
+            Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+        }
+
+        AndroidView(
+            factory = { PlayerView(it).apply { player = exoPlayer } },
+            modifier = videoModifier.padding(bottom = 8.dp),
+        )
     }
 }

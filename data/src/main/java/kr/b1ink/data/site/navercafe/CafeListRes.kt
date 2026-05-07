@@ -66,7 +66,7 @@ fun CafeListRes.CafeList.toListItemDto() = ListItemDto(
     ),
     info = "${nickName}ㆍ${Date(time).toTimeAgo()}ㆍ${hit} 읽음",
     category = category,
-    time = time.toString(),
+    time = Date(time).toTimeAgo(),
     board = cafeId.toString(),
     hasImage = hasImage,
     like = like,

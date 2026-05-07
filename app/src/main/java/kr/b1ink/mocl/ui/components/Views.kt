@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -53,7 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
@@ -204,11 +204,17 @@ fun LoadingRow(
 fun ListRow(
     modifier: Modifier = Modifier,
     title: () -> String,
-    info: () -> String,
-    image: () -> String,
+    nickImage: String = "",
+    nickName: String = "",
+    time: String = "",
+    hit: String = "",
     reply: () -> String,
     textColor: Color?,
+    isRead: Boolean = false,
 ) {
+    val hasNickImage = nickImage.isNotBlank()
+    val hasMeta = nickName.isNotBlank() || time.isNotBlank() || hit.isNotBlank() || hasNickImage
+
     Column(
         modifier = modifier.testTag("ListScreenContents:Item"),
     ) {
@@ -220,7 +226,7 @@ fun ListRow(
                 .fillMaxWidth()
                 .wrapContentHeight()
         )
-        if (info().isNotEmpty()) {
+        if (hasMeta) {
             Spacer(modifier = Modifier.size(10.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -228,13 +234,16 @@ fun ListRow(
                     .fillMaxWidth()
                     .height(20.dp)
             ) {
-                GifNickImage(url = image)
-                Text(
-                    text = info,
+                GifNickImage(url = { nickImage })
+                InfoRow(
+                    nickName = nickName,
+                    time = time,
+                    hit = hit,
                     fontSize = 14.sp,
+                    isRead = isRead,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 2.dp)
+                        .padding(end = 2.dp),
                 )
                 TextWithRoundBorder(
                     text = reply, fontSize = 12.sp, modifier = Modifier
@@ -242,6 +251,68 @@ fun ListRow(
                         .padding(end = 2.dp)
                 )
             }
+        }
+    }
+}
+
+/**
+ * 공용 정보 행 컴포넌트.
+ * 닉네임, 시간, 조회수를 개별 필드로 받아 스타일링.
+ *
+ * - nickName: tertiary 색상 (닉이미지가 있으면 빈 문자열로 전달하여 숨김)
+ * - time/hit: onTertiary (회색)
+ * - 구분자 ·: onSurfaceVariant (연하게)
+ */
+@Composable
+fun InfoRow(
+    modifier: Modifier = Modifier,
+    nickName: String = "",
+    time: String = "",
+    hit: String = "",
+    fontSize: TextUnit = 14.sp,
+    isRead: Boolean = false,
+) {
+    val nickColor = if (isRead) {
+        MaterialTheme.colorScheme.onTertiary
+    } else {
+        MaterialTheme.colorScheme.tertiary
+    }
+    val metaColor = MaterialTheme.colorScheme.onTertiary
+    val dotColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+    val metaStyle = MaterialTheme.typography.bodyMedium.copy(color = metaColor)
+    val dotText = " · "
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier,
+    ) {
+        var hasPrev = false
+
+        if (nickName.isNotBlank()) {
+            Text(
+                text = nickName,
+                fontSize = fontSize,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = nickColor,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                ),
+            )
+            hasPrev = true
+        }
+        if (time.isNotBlank()) {
+            if (hasPrev) {
+                Text(text = dotText, fontSize = fontSize, color = dotColor, style = metaStyle)
+            }
+            Text(text = time, fontSize = fontSize, maxLines = 1, style = metaStyle)
+            hasPrev = true
+        }
+        if (hit.isNotBlank()) {
+            if (hasPrev) {
+                Text(text = dotText, fontSize = fontSize, color = dotColor, style = metaStyle)
+            }
+            Text(text = "$hit 읽음", fontSize = fontSize, maxLines = 1, style = metaStyle)
         }
     }
 }
@@ -298,9 +369,9 @@ fun TextWithRoundBorder(
 
 @Composable
 fun GifNickImage(
+    modifier: Modifier = Modifier,
     url: () -> String?,
     height: Dp = 16.dp,
-    modifier: Modifier = Modifier,
 ) {
     val model = url()
     if (model.isNullOrBlank()) return
@@ -413,43 +484,33 @@ fun DetailImageCoil(
 
             val painter = painterState.painter
             val intrinsicSize = painter.intrinsicSize
+            val density = LocalDensity.current
 
-            // 화면 너비 및 이미지 원본 크기 계산 로직은 유지
-            val configuration = LocalConfiguration.current
-            // Coil 3의 intrinsicSize는 이미 Density를 고려한 픽셀 단위일 수 있으므로,
-            // 직접적인 DPI 계산보다는 painter의 크기를 활용하는 것이 더 안정적일 수 있습니다.
-            // 다만, Coil 2와 동일한 로직을 유지하기 위해 dpi 계산을 포함했습니다.
-            // 필요에 따라 이 부분을 테스트하고 조정하세요.
-            val density = LocalContext.current.resources.displayMetrics.density
-            val imagePixelWidth = intrinsicSize.width
-            val imagePixelHeight = intrinsicSize.height
+            val imageDpWidth = with(density) { intrinsicSize.width.toDp() }
+            val imageDpHeight = with(density) { intrinsicSize.height.toDp() }
 
-            val imageDpWidth = (imagePixelWidth / density).dp
-            val screenWidthDp = configuration.screenWidthDp.dp
+            BoxWithConstraints {
+                val availableWidth = maxWidth
 
-            var contentScale: ContentScale = ContentScale.None
-            val imageModifier: Modifier
+                var contentScale: ContentScale = ContentScale.None
+                val imageModifier: Modifier
 
-            if (imageDpWidth < screenWidthDp) {
-                val imageDpHeight = (imagePixelHeight / density).dp
-                imageModifier = Modifier.size(imageDpWidth, imageDpHeight)
-                // .background(Color.Cyan) // 디버깅용 배경색, 필요시 유지
-            } else {
-                imageModifier = Modifier.fillMaxWidth()
-                contentScale = ContentScale.FillWidth
+                if (imageDpWidth < availableWidth) {
+                    imageModifier = Modifier.size(imageDpWidth, imageDpHeight)
+                } else {
+                    imageModifier = Modifier.fillMaxWidth()
+                    contentScale = ContentScale.FillWidth
+                }
+
+                Image(
+                    painter = painter,
+                    contentDescription = null,
+                    contentScale = contentScale,
+                    modifier = imageModifier
+                        .clickable { onClicked?.invoke() },
+                    alignment = Alignment.TopStart
+                )
             }
-
-            // SubcomposeAsyncImageContent 대신 Image 컴포저블을 직접 사용하거나,
-            // painterState.painter를 사용하는 다른 Coil 3 API를 사용할 수 있습니다.
-            // 여기서는 Image 컴포저블을 사용하여 명시적으로 painter를 렌더링합니다.
-            Image(
-                painter = painter,
-                contentDescription = null, // 이미 위에서 null로 설정
-                contentScale = contentScale,
-                modifier = imageModifier
-                    .clickable { onClicked?.invoke() },
-                alignment = Alignment.TopStart // 기존 alignment 유지
-            )
         },
         error = {
             // 에러 상태일 때 보여줄 UI (예: 아이콘 또는 메시지)

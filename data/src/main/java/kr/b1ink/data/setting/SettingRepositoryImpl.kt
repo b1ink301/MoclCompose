@@ -16,4 +16,11 @@ class SettingRepositoryImpl @Inject constructor(
     override suspend fun setSiteType(type: SiteType) = withContext(dispatcher) {
         dataStore.siteType = type
     }
+
+    override val fontScale: Float
+        get() = dataStore.fontScale
+
+    override suspend fun setFontScale(scale: Float) = withContext(dispatcher) {
+        dataStore.fontScale = scale
+    }
 }

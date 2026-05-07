@@ -76,7 +76,7 @@ class NaverCafeApiImpl @Inject constructor(
                 likeCount = "",
                 bodyHtml = article.contentHtml,
                 info = "${article.writer.nick}ㆍ${time}ㆍ${article.readCount} 읽음",
-                time = article.writeDate.toString(),
+                time = time,
                 userInfo = UserInfo(
                     id = article.writer.memberKey,
                     nickName = article.writer.nick,

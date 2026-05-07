@@ -51,7 +51,15 @@ internal class JavaLibraryPlugin : Plugin<Project> {
                 )
 //                "testImplementation"(libs.findLibrary("kotlinx.coroutines.test").get())
                 "testImplementation"(
-                    libs.findLibrary("junit")
+                    libs.findLibrary("junit-jupiter-api")
+                        .get()
+                )
+                "testRuntimeOnly"(
+                    libs.findLibrary("junit-jupiter-engine")
+                        .get()
+                )
+                "testRuntimeOnly"(
+                    libs.findLibrary("junit-platform-launcher")
                         .get()
                 )
             }

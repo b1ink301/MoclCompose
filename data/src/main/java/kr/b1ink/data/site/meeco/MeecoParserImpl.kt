@@ -142,7 +142,8 @@ class MeecoParserImpl @Inject constructor() : BaseParser {
         val userId = nickName // ID를 닉네임으로 사용 (고유성 보장 안될 수 있음)
         val hasImage = false // 이미지 유무 판단 로직은 원본에 없었음. 필요시 추가
 
-        val itemInfo = buildItemInfoString(nickName, time.toTimeAgo(), hit)
+        val formattedTime = time.toTimeAgo()
+        val itemInfo = buildItemInfoString(nickName, formattedTime, hit)
 
         return ListItemDto(
             id = id,
@@ -155,7 +156,7 @@ class MeecoParserImpl @Inject constructor() : BaseParser {
             ),
             info = itemInfo,
             category = category,
-            time = time, // 원본 시간
+            time = formattedTime, // 표시용 시간
             url = url,
             board = board,
             hasImage = hasImage,
@@ -286,14 +287,15 @@ class MeecoParserImpl @Inject constructor() : BaseParser {
                 parseCommentElement(commentElement, commentIndex++)
             }
 
-        val detailInfo = buildItemInfoString(nickName, time.toTimeAgo(), viewCount)
+        val formattedTime = time.toTimeAgo()
+        val detailInfo = buildItemInfoString(nickName, formattedTime, viewCount)
 
         return DetailDto(
             viewCount = viewCount,
             likeCount = likeCount,
             csrf = csrf,
             title = title,
-            time = time, // 원본 시간
+            time = formattedTime, // 표시용 시간
             info = detailInfo,
             userInfo = UserInfo(
                 id = userId,
@@ -345,14 +347,15 @@ class MeecoParserImpl @Inject constructor() : BaseParser {
         // 이미지 경로 수정: "//img." -> "https://img."
         val bodyHtml = (bodyElement?.html() ?: "").replace("//img.", "https://img.")
 
-        val info = buildItemInfoString(nickName, time.toTimeAgo(), "") // 댓글은 조회수 없음, 상세 보기 플래그 사용
+        val formattedTime = time.toTimeAgo()
+        val info = buildItemInfoString(nickName, formattedTime, "") // 댓글은 조회수 없음
 
         return DetailComment(
             id = index,
             isReply = isReply,
             bodyHtml = bodyHtml,
             likeCount = likeCount,
-            time = time, // 원본 시간
+            time = formattedTime, // 표시용 시간
             info = info,
             userInfo = UserInfo(
                 id = userId,

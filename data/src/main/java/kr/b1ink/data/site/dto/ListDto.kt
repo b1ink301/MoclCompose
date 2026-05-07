@@ -13,11 +13,11 @@ data class ListItemDto(
     val time: String,
     val url: String,
     val board: String,
-    val userInfo: UserInfo,
-    val hasImage: Boolean = false,
     val type: Int = 0,
     val like: String,
     val hit: String,
+    val userInfo: UserInfo,
+    val hasImage: Boolean = false,
     val isRead: Boolean = false
 ) : DtoMapper<ListItemDto, ListItem> {
     override fun ListItemDto.mapping(): ListItem = toListItem()

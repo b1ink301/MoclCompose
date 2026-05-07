@@ -32,7 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -58,7 +58,7 @@ fun ListScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(state = topAppBarState)
 
     val pagingState by viewModel.collectAsState()
-    val lazyPagingItems = pagingState.collectAsLazyPagingItems()
+    val lazyPagingItems = pagingState.pagingData.collectAsLazyPagingItems()
 
     LaunchedEffect(readId) {
         viewModel.markRead(readId)
@@ -67,9 +67,7 @@ fun ListScreen(
     viewModel.collectSideEffect { result ->
         when (result) {
             is ListUiSideEffect.ReadId -> {
-                lazyPagingItems.itemSnapshotList
-                    .find { it?.listItem?.id == result.id }
-                    ?.isRead?.value = true
+                lazyPagingItems.itemSnapshotList.find { it?.listItem?.id == result.id }?.isRead?.value = true
             }
 
             ListUiSideEffect.Refresh -> lazyPagingItems.refresh()
@@ -77,7 +75,7 @@ fun ListScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+//        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             ListTopAppBar(
                 title = viewModel.title,
@@ -88,16 +86,17 @@ fun ListScreen(
         },
     ) { innerPadding ->
         Box(
-            modifier = Modifier
-                .padding(top = innerPadding.calculateTopPadding()),
+            modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
         ) {
             PullToRefreshBox(
-                modifier = Modifier
-                    .fillMaxSize(),
-                isRefreshing = remember { viewModel.isRefreshing },
+                modifier = Modifier.fillMaxSize(),
+                isRefreshing = remember { pagingState.isRefreshing },
                 onRefresh = viewModel::refresh,
             ) {
                 ListContents(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
                     lazyPagingItems = lazyPagingItems,
                     contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding()),
                     listState = listState,
@@ -113,6 +112,7 @@ fun ListScreen(
 
 @Composable
 private fun ListContents(
+    modifier: Modifier,
     lazyPagingItems: LazyPagingItems<ListItemWrapper>,
     listState: LazyListState,
     contentPadding: PaddingValues = PaddingValues(),
@@ -121,7 +121,7 @@ private fun ListContents(
 ) = LazyColumn(
     contentPadding = contentPadding,
     verticalArrangement = Arrangement.Top,
-    modifier = Modifier.fillMaxSize(),
+    modifier = modifier,
     state = listState,
 ) {
     with(lazyPagingItems.loadState) {
@@ -166,27 +166,27 @@ private fun ListRowContent(
     item: ListItemWrapper,
     onClicked: (ListItem) -> Unit,
 ) {
-    val title = item.listItem.title
-    val info = item.listItem.info
-    val nickImage = item.listItem.userInfo.nickImage
-    val reply = item.listItem.reply
+    val listItem = item.listItem
     val isRead by item.isRead
     val textColor = if (isRead) MaterialTheme.colorScheme.onTertiary else null
 
     Column(
         modifier = Modifier
             .clickable(onClick = singleClick {
-                onClicked.invoke(item.listItem)
+                onClicked.invoke(listItem)
             })
             .padding(start = 16.dp, end = 8.dp)
     ) {
         ListRow(
-            title = { title },
-            info = { info },
-            image = { nickImage },
-            reply = { reply },
+            title = { listItem.title },
+            nickImage = listItem.userInfo.nickImage,
+            nickName = listItem.userInfo.nickName,
+            time = listItem.time,
+            hit = listItem.hit,
+            reply = { listItem.reply },
             textColor = textColor,
-            modifier = Modifier.padding(vertical = 12.dp)
+            isRead = isRead,
+            modifier = Modifier.padding(vertical = 14.dp)
         )
         ListDivider()
     }

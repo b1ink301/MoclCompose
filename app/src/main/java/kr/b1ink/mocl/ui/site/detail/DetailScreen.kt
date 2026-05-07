@@ -7,16 +7,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -24,8 +30,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -36,19 +44,26 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import kr.b1ink.domain.model.DetailComment
 import kr.b1ink.domain.model.DetailData
 import kr.b1ink.domain.model.UserInfo
+import kr.b1ink.htmlcompose.HtmlBlock
+import kr.b1ink.htmlcompose.HtmlParser
 import kr.b1ink.htmlcompose.HtmlRenderer
+import kr.b1ink.htmlcompose.LocalExoPlayerPool
+import kr.b1ink.htmlcompose.htmlContent
+import kr.b1ink.htmlcompose.rememberExoPlayerPool
 import kr.b1ink.mocl.ui.components.GifNickImage
 import kr.b1ink.mocl.ui.components.HeartWithNumber
+import kr.b1ink.mocl.ui.components.InfoRow
 import kr.b1ink.mocl.ui.components.ListDivider
 import kr.b1ink.mocl.ui.components.LoadingRow
 import kr.b1ink.mocl.ui.components.RefreshButton
 import kr.b1ink.mocl.util.openCustomTabs
 import org.orbitmvi.orbit.compose.collectAsState
+import timber.log.Timber
 
 const val HEADER_HEIGHT = 48
 
@@ -67,6 +82,18 @@ fun DetailScreen(
     val listState = rememberLazyListState()
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(state = topAppBarState)
+
+    var showFontSizeDialog by remember { mutableStateOf(false) }
+    if (showFontSizeDialog) {
+        FontSizeDialog(
+            initialScale = viewModel.currentFontScale,
+            onDismiss = { showFontSizeDialog = false },
+            onConfirm = {
+                viewModel.setFontScale(it)
+                showFontSizeDialog = false
+            },
+        )
+    }
 
 //    viewModel.collectSideEffect {
 //    }
@@ -87,7 +114,8 @@ fun DetailScreen(
                 onOpenCustomTabs = {
                     viewModel.uri
                         .openCustomTabs(context)
-                }
+                },
+                onFontSize = { showFontSizeDialog = true },
             )
         },
     ) { innerPadding ->
@@ -131,60 +159,85 @@ fun DetailScreenContents(
     onUpdateTitle: (String) -> Unit,
     onRefresh: () -> Unit,
     onRead: (Long) -> Unit,
-) = LazyColumn(
-    contentPadding = contentPadding,
-    modifier = modifier
-        .padding(start = 16.dp, end = 8.dp),
-    verticalArrangement = Arrangement.spacedBy(1.dp),
-    state = listState,
 ) {
-    when (uiState) {
-        is DetailUiState.Error -> item {
-            Text(
-                uiState.message ?: "Unknown Error",
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp)
-            )
-            ListDivider()
-        }
-
-        DetailUiState.Loading -> item {
-            LoadingRow()
-            ListDivider()
-        }
-
-        is DetailUiState.Success -> {
-            val item = uiState.data
-            if (item.title.isNotBlank()) onUpdateTitle(item.title)
-
-            header(id, item)
-            body(item)
-            comments(id, item)
-            footer(onRefresh)
-
-            onRead.invoke(id)
-        }
+    // Composable 스코프에서 파싱 결과 캐싱 (LazyListScope에서는 remember 불가)
+    val bodyBlocks = remember(uiState) {
+        (uiState as? DetailUiState.Success)?.data?.bodyHtml
+            ?.let { HtmlParser.parse(it) }
+            ?: emptyList()
     }
+
+    // ExoPlayer 풀: 화면 레벨에서 생성, 스크롤 시 재사용
+    val exoPlayerPool = rememberExoPlayerPool()
+
+    CompositionLocalProvider(LocalExoPlayerPool provides exoPlayerPool) {
+        LazyColumn(
+            contentPadding = contentPadding,
+            modifier = modifier
+                .padding(start = 16.dp, end = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+            state = listState,
+        ) {
+            when (uiState) {
+                is DetailUiState.Error -> item {
+                    Text(
+                        uiState.message ?: "Unknown Error",
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
+                    )
+                    ListDivider()
+                }
+
+                DetailUiState.Loading -> item {
+                    LoadingRow()
+                    ListDivider()
+                }
+
+                is DetailUiState.Success -> {
+                    val item = uiState.data
+                    if (item.title.isNotBlank()) onUpdateTitle(item.title)
+
+                    Timber.d("DetailScreenContents: $item")
+
+                    header(id, item)
+                    body(bodyBlocks)
+                    comments(id, item)
+                    footer(onRefresh)
+
+                    onRead.invoke(id)
+                }
+            }
+        }
+    } // CompositionLocalProvider
 }
 
 private fun LazyListScope.header(
     id: Long,
     data: DetailData,
 ) = stickyHeader(key = id) {
-    HeaderText(
-        info = data.info,
-        nickImage = data.userInfo.nickImage,
-        likeCount = data.likeCount,
-    )
-    ListDivider()
+    Column {
+        HeaderText(
+            userInfo = data.userInfo,
+            likeCount = data.likeCount,
+            viewCount = data.viewCount,
+            time = data.time,
+        )
+        ListDivider()
+    }
 }
 
 private fun LazyListScope.body(
-    data: DetailData,
-) = item {
-    HtmlRenderer(data.bodyHtml)
-    ListDivider()
+    blocks: List<HtmlBlock>,
+) {
+    item {
+        Spacer(Modifier.height(8.dp))
+    }
+    htmlContent(blocks = blocks, keyPrefix = "body")
+    item {
+        Spacer(Modifier.height(8.dp))
+        ListDivider()
+    }
 }
 
 private fun LazyListScope.footer(
@@ -204,7 +257,7 @@ private fun LazyListScope.comments(
     data: DetailData,
 ) {
     if (data.comments.isNotEmpty()) {
-        stickyHeader(key = "${id}_comment") {
+        stickyHeader(key = "${id}_comment_header") {
             CommentHeader(commentCount = data.comments.size)
         }
         items(
@@ -222,15 +275,23 @@ private fun CommentHeader(commentCount: Int) = Column(
         .fillMaxWidth()
         .background(MaterialTheme.colorScheme.background),
 ) {
-    Box(
-        contentAlignment = Alignment.CenterStart,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .height(HEADER_HEIGHT.dp)
+            .padding(vertical = 8.dp),
     ) {
-        kr.b1ink.mocl.ui.components.Text(
-            text = { "댓글 ($commentCount)" },
-            fontColor = MaterialTheme.colorScheme.tertiary,
-            fontSize = 15.4.sp,
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.Chat,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = "댓글 $commentCount",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onTertiary,
         )
     }
     ListDivider()
@@ -241,7 +302,8 @@ private fun CommentText(
     item: DetailComment,
 ) {
     val nickImage = item.userInfo.nickImage
-    val info = item.info
+    val nickName = item.userInfo.nickName
+    val time = item.time
     val bodyHtml = item.bodyHtml
     val isReply = item.isReply
     val likeCount = item.likeCount
@@ -263,11 +325,11 @@ private fun CommentText(
                 .height(24.dp)
         ) {
             GifNickImage(url = { nickImage })
-            kr.b1ink.mocl.ui.components.Text(
-                text = { info },
+            InfoRow(
+                nickName = nickName,
+                time = time,
                 fontSize = 15.sp,
-                fontColor = MaterialTheme.colorScheme.onTertiary,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
             HeartWithNumber(
                 number = likeCount,
@@ -276,7 +338,7 @@ private fun CommentText(
         }
 
         if (bodyHtml.isNotBlank()) {
-            HtmlRenderer(bodyHtml)
+            HtmlRenderer(html = bodyHtml)
         }
     }
     ListDivider()
@@ -284,30 +346,36 @@ private fun CommentText(
 
 @Composable
 fun HeaderText(
-    info: String,
-    nickImage: String,
+    userInfo: UserInfo,
     likeCount: String,
-) = Row(
-    verticalAlignment = Alignment.CenterVertically,
-    modifier = Modifier
-        .fillMaxWidth()
-        .height(HEADER_HEIGHT.dp)
-        .background(MaterialTheme.colorScheme.background)
+    viewCount: String,
+    time: String,
 ) {
-    GifNickImage(
-        url = { nickImage },
-        height = 17.dp
-    )
-    kr.b1ink.mocl.ui.components.Text(
-        text = { info },
-        fontSize = 15.4.sp,
-        fontColor = MaterialTheme.colorScheme.onTertiary,
-        modifier = Modifier.weight(1f)
-    )
-    HeartWithNumber(
-        number = likeCount,
-        textSize = 15.4.sp,
-    )
+    Timber.d("HeaderText: $userInfo, $likeCount, $viewCount, $time")
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(HEADER_HEIGHT.dp)
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        GifNickImage(
+            url = { userInfo.nickImage },
+            height = 17.dp
+        )
+        InfoRow(
+            nickName = userInfo.nickName,
+            time = time,
+            hit = viewCount,
+            fontSize = 15.sp,
+            modifier = Modifier.weight(1f),
+        )
+        HeartWithNumber(
+            number = likeCount,
+            textSize = 15.sp,
+        )
+    }
 }
 
 @Preview
